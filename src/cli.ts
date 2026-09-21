@@ -194,7 +194,6 @@ async function main() {
                 style(colors.yellow, 'No active session found.'),
                 '',
                 style(colors.blue, 'Run: chefu login --email <email> --password <password>'),
-                style(colors.dim, 'or set CHEFU_API_BASE_URL for a different environment.'),
             ]);
             process.exitCode = 1;
             return;
