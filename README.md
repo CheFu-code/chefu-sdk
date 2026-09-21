@@ -14,7 +14,7 @@ npm i @chefu-code/sdk
 import { ChefuClient } from '@chefu-code/sdk';
 
 const client = new ChefuClient({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'https://api.chefu.co.za',
 });
 
 const login = await client.login({

@@ -14,7 +14,7 @@ export class ChefuClient {
   private token?: string;
 
   constructor({
-    baseURL = 'http://localhost:3000',
+    baseURL = 'https://api.chefu.co.za',
     token,
   }: {
     baseURL?: string;

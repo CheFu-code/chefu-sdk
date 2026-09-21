@@ -1,6 +1,6 @@
 {
   "name": "@chefu-code/sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Official Chefu SDK for auth and app management",
   "license": "MIT",
   "repository": {
