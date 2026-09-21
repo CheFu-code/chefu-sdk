@@ -19,7 +19,95 @@ const printInfo = (msg: string) => console.log(style(colors.cyan, '›') + ' ' +
 const printSuccess = (msg: string) => console.log(style(colors.green, '✓') + ' ' + style(colors.bold, msg));
 const printWarn = (msg: string) => console.log(style(colors.yellow, '⚠') + ' ' + style(colors.bold, msg));
 const printError = (msg: string) => console.error(style(colors.red, '✖') + ' ' + style(colors.bold, msg));
-const printJson = (value: unknown) => console.log(JSON.stringify(value, null, 2));
+
+function prettyJson(value: unknown): string {
+  return JSON.stringify(value, null, 2)
+    .split('\n')
+    .map((line) => style(colors.dim, line))
+    .join('\n');
+}
+
+function printJson(value: unknown): void {
+  console.log(prettyJson(value));
+}
+
+function renderBox(title: string, lines: string[]): void {
+  const content = lines.map((line) => line.replace(/\t/g, '    '));
+  const width = Math.max(title.length + 2, ...content.map((line) => line.length), 32) + 2;
+  const top = `┌${'─'.repeat(width - 2)}┐`;
+  const middle = `│ ${title.padEnd(width - 4, ' ')} │`;
+  const separator = `├${'─'.repeat(width - 2)}┤`;
+  const bottom = `└${'─'.repeat(width - 2)}┘`;
+
+  console.log(top);
+  console.log(style(colors.magenta, middle));
+  console.log(separator);
+  for (const line of content) {
+    const padded = line.padEnd(width - 4, ' ');
+    console.log(`│ ${padded} │`);
+  }
+  console.log(bottom);
+}
+
+function renderExamples(): void {
+  const examples = [
+    'chefu login --email user@chefu.co.za --password secret',
+    'chefu whoami',
+    'chefu apps list',
+    'chefu apps register --appId flow --name "My App" --owner user@chefu.co.za --type confidential',
+    'chefu apps approve --client-id CLIENT_ID --approved-by admin@chefu.co.za',
+    'chefu apps rotate-secret --client-id CLIENT_ID',
+    'chefu logout',
+  ];
+
+  renderBox('Examples', examples.map((example) => style(colors.blue, example)));
+}
+
+function normalizeAppRows(input: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(input)) return input.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object') as Record<string, unknown>[];
+  if (input && typeof input === 'object') {
+    const obj = input as Record<string, unknown>;
+    const candidates = ['apps', 'items', 'data', 'results'];
+    for (const key of candidates) {
+      const value = obj[key];
+      if (Array.isArray(value)) {
+        return value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object') as Record<string, unknown>[];
+      }
+    }
+  }
+  return [];
+}
+
+function renderAppTable(input: unknown): void {
+  const rows = normalizeAppRows(input);
+  if (!rows.length) {
+    printWarn('No apps found.');
+    return;
+  }
+
+  const data = rows.map((app) => {
+    const object = app as Record<string, unknown>;
+    const appId = String(object.appId ?? object.client_id ?? object.clientId ?? object.id ?? '—');
+    const name = String(object.name ?? '—');
+    const type = String(object.clientType ?? object.type ?? object.kind ?? '—');
+    const status = String(object.status ?? 'pending');
+    return [appId, name, type, status] as const;
+  });
+
+  const headers = ['APP ID', 'NAME', 'TYPE', 'STATUS'];
+  const columns = headers.map((_, index) => [headers[index], ...data.map((row) => row[index])]);
+  const widths = columns.map((column) => Math.max(...column.map((cell) => String(cell).length)));
+  const horizontal = widths.map((width) => '─'.repeat(width + 2)).join('─┼─');
+  const formatRow = (row: string[]) => `│ ${row.map((cell, i) => String(cell).padEnd(widths[i], ' ')).join(' │ ')} │`;
+
+  console.log(`┌─${horizontal}─┐`);
+  console.log(formatRow(headers));
+  console.log(`├─${horizontal}─┤`);
+  for (const row of data) {
+    console.log(formatRow(row.map((cell) => String(cell))));
+  }
+  console.log(`└─${horizontal}─┘`);
+}
 
 const args = process.argv.slice(2);
 const jsonFlag = args.includes('--json') || args.includes('-j');
@@ -75,10 +163,24 @@ async function main() {
     const commandArgs = asCommandArgs(filteredArgs);
     const flags = parseFlags(commandArgs);
     const command = commandArgs[0];
-    const baseURL = 'https://api.chefu.co.za';
+    const baseURL = process.env.CHEFU_API_BASE_URL || 'https://api.chefu.co.za';
 
     if (!command || command === 'help' || command === '--help' || command === '-h') {
-        console.log(usage.trim());
+        renderBox('Chefu SDK CLI', [
+            '',
+            'Usage:',
+            '  chefu login --email user@chefu.co.za --password secret',
+            '  chefu whoami',
+            '  chefu apps list',
+            '  chefu apps register --appId flow --name "My App" --owner user@chefu.co.za --type confidential --redirect-uri "https://app.example.com/callback" --scope "openid,profile,email"',
+            '  chefu apps approve --client-id CLIENT_ID --approved-by admin@chefu.co.za',
+            '  chefu apps rotate-secret --client-id CLIENT_ID',
+            '  chefu logout',
+            '',
+            'Flags:',
+            '  --json, -j  Output raw JSON',
+        ]);
+        renderExamples();
         return;
     }
 
@@ -127,8 +229,10 @@ async function main() {
                 if (jsonFlag) {
                     printJson(result);
                 } else {
-                    printInfo('Apps');
-                    printJson(result);
+                    renderBox('Apps', [
+                        style(colors.cyan, 'Fetched app registry'),
+                    ]);
+                    renderAppTable(result);
                 }
                 return;
             }
@@ -159,7 +263,7 @@ async function main() {
                     printJson(result);
                 } else {
                     printSuccess('App registered.');
-                    printJson(result);
+                    renderBox('Registration response', [prettyJson(result)]);
                 }
                 return;
             }
@@ -172,7 +276,7 @@ async function main() {
                     printJson(result);
                 } else {
                     printSuccess('App approved.');
-                    printJson(result);
+                    renderBox('Approval response', [prettyJson(result)]);
                 }
                 return;
             }
@@ -184,7 +288,7 @@ async function main() {
                     printJson(result);
                 } else {
                     printSuccess('Secret rotated.');
-                    printJson(result);
+                    renderBox('Rotation response', [prettyJson(result)]);
                 }
                 return;
             }
