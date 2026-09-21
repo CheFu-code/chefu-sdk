@@ -165,6 +165,7 @@ async function main() {
     const command = commandArgs[0];
     const baseURL = process.env.CHEFU_API_BASE_URL || 'https://api.chefu.co.za';
 
+    const requiresAuth = ['whoami', 'logout', 'apps'];
     if (!command || command === 'help' || command === '--help' || command === '-h') {
         renderBox('Chefu SDK CLI', [
             '',
@@ -185,6 +186,20 @@ async function main() {
     }
 
     const client = new ChefuClient({ baseURL });
+
+    if (requiresAuth.includes(command) && !process.env.CHEFU_TOKEN) {
+        const storedToken = process.env.CHEFU_TOKEN || '';
+        if (!storedToken) {
+            renderBox('Not authenticated', [
+                style(colors.yellow, 'No active session found.'),
+                '',
+                style(colors.blue, 'Run: chefu login --email <email> --password <password>'),
+                style(colors.dim, 'or set CHEFU_API_BASE_URL for a different environment.'),
+            ]);
+            process.exitCode = 1;
+            return;
+        }
+    }
 
     try {
         if (command === 'login') {

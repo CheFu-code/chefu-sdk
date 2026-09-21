@@ -46,21 +46,45 @@ export class ChefuClient {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
 
-    const response = await fetch(`${this.baseURL}${path}`, {
-      ...init,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseURL}${path}`, {
+        ...init,
+        headers,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Network error while contacting ${this.baseURL}${path}. ${message}`);
+    }
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text || null;
+    }
 
     if (!response.ok) {
-      const message =
+      const firstMessage =
         (typeof data === 'object' && data && 'message' in data && typeof data.message === 'string'
           ? data.message
           : typeof data === 'object' && data && 'error' in data && typeof data.error === 'string'
             ? data.error
-            : `Request failed: ${response.status}`);
+            : typeof data === 'string' && data.length
+              ? data
+              : null);
+
+      const message = firstMessage || `Request failed with status ${response.status} at ${this.baseURL}${path}`;
+
+      if (response.status === 401) {
+        throw new Error(`${message}. You are not authenticated. Run: chefu login --email <email> --password <password>`);
+      }
+
+      if (response.status === 404) {
+        throw new Error(`${message}. Check that the API URL is correct and that the endpoint exists: ${this.baseURL}`);
+      }
+
       throw new Error(message);
     }
 
