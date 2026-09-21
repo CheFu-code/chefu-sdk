@@ -1,0 +1,43 @@
+{
+  "name": "@chefu-code/sdk",
+  "version": "0.1.0",
+  "description": "Official Chefu SDK for auth and app management",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chefu/chefu-sdk.git"
+  },
+  "homepage": "https://github.com/chefu/chefu-sdk",
+  "keywords": [
+    "chefu",
+    "auth",
+    "oauth",
+    "sdk",
+    "cli",
+    "firebase"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "chefu": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
