@@ -5,13 +5,13 @@ Official SDK for Chefu authentication and app management.
 ## Install
 
 ```bash
-npm install @chefu/sdk
+npm i @chefu-code/sdk
 ```
 
 ## Usage
 
 ```ts
-import { ChefuClient } from '@chefu/sdk';
+import { ChefuClient } from '@chefu-code/sdk';
 
 const client = new ChefuClient({
   baseURL: 'http://localhost:3000',
@@ -39,5 +39,5 @@ npx chefu apps list
 ## Environment
 
 ```bash
-export CHEFU_API_BASE_URL=http://localhost:3000
+export CHEFU_API_BASE_URL=https://api.chefu.co.za
 ```
